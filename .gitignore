@@ -1,0 +1,6 @@
+archive/
+b2c_sc/
+slp_sc/pem-file-AWS/
+slp_sc/office/.venv/
+slp_sc/office/.env
+slp_sc/office/__pycache__/

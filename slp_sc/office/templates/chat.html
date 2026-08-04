@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>קריאת שירות</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:Arial,sans-serif;background:#f4f5f7;direction:rtl;display:flex;flex-direction:column;height:100dvh;}
+
+/* ── Header ── */
+#call-header{background:#fff;border-bottom:1px solid #dde;padding:10px 14px;flex-shrink:0;box-shadow:0 1px 4px rgba(0,0,0,0.06);}
+.call-badge{font-size:11px;color:#4a6cf7;font-weight:600;margin-bottom:2px;letter-spacing:.3px;}
+.call-title{font-size:15px;font-weight:600;color:#1a1a2e;margin-bottom:6px;line-height:1.3;}
+.call-meta{display:flex;gap:10px;flex-wrap:wrap;}
+.meta-item{font-size:11px;color:#888;}
+.meta-item b{color:#333;font-weight:500;}
+
+/* ── Chat area ── */
+#chat-area{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 14px;display:flex;flex-direction:column;gap:8px;}
+
+.msg-wrap{display:flex;flex-direction:column;max-width:88%;}
+.msg-bubble{background:#fff;border:1px solid #e8eaf0;border-radius:14px 14px 4px 14px;padding:8px 12px;box-shadow:0 1px 3px rgba(0,0,0,0.05);}
+.msg-head{display:flex;gap:8px;align-items:center;margin-bottom:4px;}
+.msg-name{font-size:12px;font-weight:600;color:#4a6cf7;}
+.msg-date{font-size:11px;color:#bbb;}
+.msg-body{font-size:14px;color:#333;line-height:1.6;white-space:pre-wrap;word-break:break-word;}
+.att-btn{margin-top:8px;display:inline-flex;align-items:center;gap:5px;font-size:12px;background:#eef2ff;color:#4a6cf7;border:1px solid #c7d2fe;border-radius:5px;padding:6px 12px;cursor:pointer;text-decoration:none;min-height:36px;}
+
+/* ── Input area ── */
+#input-area{background:#fff;border-top:1px solid #dde;padding:10px 14px;flex-shrink:0;padding-bottom:max(10px, env(safe-area-inset-bottom));}
+#new-msg{width:100%;min-height:56px;max-height:120px;resize:none;border:1px solid #dde;border-radius:10px;padding:10px 14px;font-size:16px;font-family:Arial,sans-serif;direction:rtl;color:#333;background:#fafbff;outline:none;transition:border-color .2s;-webkit-appearance:none;}
+#new-msg:focus{border-color:#4a6cf7;}
+.input-actions{display:flex;align-items:center;gap:8px;margin-top:8px;}
+.file-label{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:#666;cursor:pointer;padding:8px 12px;border:1px solid #dde;border-radius:8px;background:#fafbff;white-space:nowrap;min-height:40px;}
+#file-name{font-size:11px;color:#888;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#send-btn{margin-right:auto;padding:10px 22px;background:#4a6cf7;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;min-height:42px;min-width:80px;-webkit-appearance:none;}
+#send-btn:disabled{background:#c4c9d8;}
+#send-btn:not(:disabled):active{background:#3a5ce5;}
+
+/* ── States ── */
+.empty-state{text-align:center;color:#bbb;font-size:13px;padding:40px 0;}
+.loading{text-align:center;color:#aaa;font-size:13px;padding:30px 0;}
+.error-box{background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;font-size:13px;}
+
+/* ── Spinner ── */
+#spinner{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,.75);z-index:999;align-items:center;justify-content:center;}
+#spinner.active{display:flex;}
+.spinner-box{background:#fff;border-radius:12px;padding:18px 28px;font-size:14px;color:#555;box-shadow:0 4px 20px rgba(0,0,0,.12);}
+</style>
+</head>
+<body>
+
+<div id="spinner"><div class="spinner-box">שולח הודעה...</div></div>
+
+<div id="call-header">
+  <div id="header-content" class="loading">טוען פרטי קריאה...</div>
+</div>
+
+<div id="chat-area">
+  <div id="messages-list" class="loading">טוען הודעות...</div>
+</div>
+
+<div id="input-area">
+  <textarea id="new-msg" placeholder="כתוב הודעה חדשה..."></textarea>
+  <div class="input-actions">
+    <label class="file-label" for="file-input">📎 צרף</label>
+    <input type="file" id="file-input" style="display:none">
+    <span id="file-name"></span>
+    <button id="send-btn" disabled>שלח ➤</button>
+  </div>
+</div>
+
+<script>
+const AIRTABLE_TOKEN = '{{ airtable_token }}';
+const AIRTABLE_BASE  = '{{ airtable_base }}';
+const CALLS_TBL      = 'Calls';
+const MSGS_TBL       = 'Massages';
+
+const CALL_NUM = new URLSearchParams(window.location.search).get('call_num');
+let callRecordId  = null;
+let callSlpName   = '';
+let callSupporter = '';
+let callIssue     = '';
+
+function formatDate(str) {
+  if (!str) return '';
+  const d = new Date(str);
+  if (isNaN(d)) return str;
+  const p = n => String(n).padStart(2,'0');
+  return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+async function atFetch(path, opts={}) {
+  const r = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE}/${path}`, {
+    ...opts,
+    headers: {
+      'Authorization': `Bearer ${AIRTABLE_TOKEN}`,
+      'Content-Type' : 'application/json',
+      ...(opts.headers||{})
+    }
+  });
+  if (!r.ok) throw new Error(`Airtable ${r.status}: ${await r.text()}`);
+  return r.json();
+}
+
+async function loadHeader() {
+  if (!CALL_NUM) {
+    document.getElementById('header-content').innerHTML =
+      '<div class="error-box">⚠️ חסר call_num בכתובת URL</div>';
+    return;
+  }
+  try {
+    const f   = encodeURIComponent(`{call_num}=${CALL_NUM}`);
+    const res = await atFetch(`${CALLS_TBL}?filterByFormula=${f}&maxRecords=1`);
+    if (!res.records?.length) {
+      document.getElementById('header-content').innerHTML =
+        '<div class="error-box">קריאה לא נמצאה</div>';
+      return;
+    }
+    const rec     = res.records[0];
+    callRecordId  = rec.id;
+    const fld     = rec.fields;
+    callSlpName   = fld.slp_name  || 'סוכן';
+    callSupporter = fld.supporter || '';
+    callIssue     = fld.slp_issue || '';
+
+    document.getElementById('header-content').innerHTML = `
+      <div class="call-badge">🎫 קריאה מספר ${fld.call_num || CALL_NUM}</div>
+      <div class="call-title">${callIssue}</div>
+      <div class="call-meta">
+        <div class="meta-item">📅 <b>${formatDate(fld.create_date)}</b></div>
+        <div class="meta-item">👤 <b>${callSlpName}</b></div>
+        <div class="meta-item">🙋 <b>${callSupporter}</b></div>
+      </div>`;
+  } catch(e) {
+    document.getElementById('header-content').innerHTML =
+      `<div class="error-box">שגיאה: ${e.message}</div>`;
+  }
+}
+
+async function loadMessages() {
+  if (!CALL_NUM) return;
+  try {
+    const f   = encodeURIComponent(`{call_num}=${CALL_NUM}`);
+    const res = await atFetch(
+      `${MSGS_TBL}?filterByFormula=${f}&sort[0][field]=date&sort[0][direction]=asc`
+    );
+    const list = document.getElementById('messages-list');
+    if (!res.records?.length) {
+      list.innerHTML = '<div class="empty-state">אין הודעות עדיין</div>';
+      return;
+    }
+    list.innerHTML = '';
+    for (const rec of res.records) {
+      const fld    = rec.fields;
+      const attUrl = fld.attachment || null;
+      const attHtml = attUrl
+        ? `<a class="att-btn" href="${attUrl}" target="_blank">📎 פתח מסמך</a>`
+        : '';
+      const div = document.createElement('div');
+      div.className = 'msg-wrap';
+      div.innerHTML = `
+        <div class="msg-bubble">
+          <div class="msg-head">
+            <span class="msg-name">${fld.name || ''}</span>
+            <span class="msg-date">${formatDate(fld.date)}</span>
+          </div>
+          <div class="msg-body">${(fld.massage || '').replace(/</g,'&lt;')}</div>
+          ${attHtml}
+        </div>`;
+      list.appendChild(div);
+    }
+    const area = document.getElementById('chat-area');
+    area.scrollTop = area.scrollHeight;
+  } catch(e) {
+    document.getElementById('messages-list').innerHTML =
+      `<div class="error-box">שגיאה: ${e.message}</div>`;
+  }
+}
+
+async function sendMessage() {
+  const txt = document.getElementById('new-msg').value.trim();
+  if (!txt || !callRecordId) return;
+
+  const btn = document.getElementById('send-btn');
+  btn.disabled = true;
+  document.getElementById('spinner').classList.add('active');
+
+  try {
+    // העלאת קובץ אם יש
+    let attachmentUrl = null;
+    const fileEl = document.getElementById('file-input');
+    if (fileEl.files[0]) {
+      const fd = new FormData();
+      fd.append('file', fileEl.files[0]);
+      fd.append('call_num', CALL_NUM);
+      const upRes  = await fetch('/upload-file', { method:'POST', body:fd });
+      const upJson = await upRes.json();
+      if (upJson.url) attachmentUrl = upJson.url;
+    }
+
+    // 1. יצירת הודעה חדשה
+    await atFetch(MSGS_TBL, {
+      method: 'POST',
+      body: JSON.stringify({
+        fields: {
+          call_num  : [callRecordId],
+          date      : new Date().toISOString(),
+          name      : callSlpName,
+          massage   : txt,
+          ...(attachmentUrl ? { attachment: attachmentUrl } : {})
+        }
+      })
+    });
+
+    // 2. עדכון סטטוס קריאה
+    await atFetch(`${CALLS_TBL}/${callRecordId}`, {
+      method : 'PATCH',
+      body   : JSON.stringify({ fields: { status: 'הודעה חדשה' } })
+    });
+
+    // 3. שליחת מייל התראה
+    await fetch('/notify', {
+      method : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body   : JSON.stringify({
+        slp_name  : callSlpName,
+        call_num  : CALL_NUM,
+        supporter : callSupporter,
+        slp_issue : callIssue
+      })
+    });
+
+    // איפוס טופס
+    document.getElementById('new-msg').value = '';
+    document.getElementById('file-name').textContent = '';
+    fileEl.value = '';
+    btn.disabled = true;
+
+    await loadMessages();
+
+  } catch(e) {
+    alert('שגיאה בשליחה: ' + e.message);
+    btn.disabled = false;
+  } finally {
+    document.getElementById('spinner').classList.remove('active');
+  }
+}
+
+document.getElementById('new-msg').addEventListener('input', function(){
+  document.getElementById('send-btn').disabled = !this.value.trim();
+});
+document.getElementById('file-input').addEventListener('change', function(){
+  document.getElementById('file-name').textContent = this.files[0]?.name || '';
+});
+document.getElementById('send-btn').addEventListener('click', sendMessage);
+
+loadHeader();
+loadMessages();
+</script>
+</body>
+</html>
