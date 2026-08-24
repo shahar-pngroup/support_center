@@ -187,15 +187,6 @@ def get_s3_client():
     )
 
 
-@app.route('/chat')
-def chat():
-    return render_template(
-        'chat.html',
-        airtable_token = AIRTABLE_TOKEN,
-        airtable_base  = AIRTABLE_BASE_ID
-    )
-
-
 @app.route('/upload-file', methods=['POST'])
 def upload_file():
     if 'file' not in request.files:
@@ -254,6 +245,5 @@ def notify():
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 80))
-    print(f'Chat Server → http://localhost:{port}/chat?call_num=XXX')
     print(f'Agent Login → http://localhost:{port}/login')
     app.run(host='0.0.0.0', port=port, debug=False)
