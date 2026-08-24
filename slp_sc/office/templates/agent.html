@@ -309,7 +309,7 @@ async function sendMessage() {
 
     await atFetch(`${CALLS_TBL}/${selectedCallId}`, {
       method : 'PATCH',
-      body   : JSON.stringify({ fields: { status: 'הודעה חדשה' } })
+      body   : JSON.stringify({ fields: { status: 'סוכן הגיב' } })
     });
 
     await fetch('/notify', {
