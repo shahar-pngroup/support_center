@@ -159,9 +159,9 @@ async function atFetch(path, opts={}) {
 //  רשימת קריאות (מסונן לפי קוד סוכן + סטטוס)
 // ══════════════════════════════════════
 function buildCallsFormula() {
-  const code = AGENT_CODE.replace(/"/g, '\\"');
+  const code = AGENT_CODE.replace(/[^0-9]/g, '');
   return (
-    `AND({slp-code}="${code}",` +
+    `AND({slp-code}=${code},` +
       `OR(` +
         `NOT({status}='${CLOSED_STATUS}'),` +
         `AND({status}='${CLOSED_STATUS}',DATETIME_DIFF(NOW(),{close_date},'days')<=2)` +

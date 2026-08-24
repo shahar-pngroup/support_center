@@ -30,14 +30,14 @@ MANAGER_SAP_CODE = 46
 #  אימות סוכנים מול טבלת oslp ב-Airtable
 # ══════════════════════════════════════════════
 def verify_agent(slp_code, password):
-    """מאמת קוד סוכן + סיסמה מול טבלת oslp (slp_code / name / password). מחזיר dict או None."""
+    """מאמת קוד סוכן + סיסמה מול טבלת OSLP (slp-code / name / password). מחזיר dict או None."""
     slp_code_clean = str(slp_code).strip()
     try:
         res = req.get(
             f'https://api.airtable.com/v0/{AIRTABLE_BASE_ID}/{AGENTS_TBL}',
             headers={'Authorization': f'Bearer {AIRTABLE_TOKEN}'},
             params={
-                'filterByFormula': f"{{slp_code}}='{slp_code_clean}'",
+                'filterByFormula': f"{{slp-code}}={slp_code_clean}",
                 'maxRecords'     : 1
             }
         ).json()
