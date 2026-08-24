@@ -22,7 +22,7 @@ AIRTABLE_BASE_ID = os.getenv('AIRTABLE_SLP2_BASE_ID', '')
 NOTIFY_EMAIL     = 'office@pngroup.co.il'
 S3_BUCKET        = os.getenv('AWS_S3_BUCKET', '')
 SUPPORTERS_TBL   = 'Supporters'
-AGENTS_TBL       = 'oslp'
+AGENTS_TBL       = 'OSLP'
 MANAGER_SAP_CODE = 46
 
 
