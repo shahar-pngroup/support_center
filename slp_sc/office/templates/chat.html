@@ -218,7 +218,7 @@ async function sendMessage() {
     // 2. עדכון סטטוס קריאה
     await atFetch(`${CALLS_TBL}/${callRecordId}`, {
       method : 'PATCH',
-      body   : JSON.stringify({ fields: { status: 'הודעה חדשה' } })
+      body   : JSON.stringify({ fields: { status: 'קריאה חדשה' } })
     });
 
     // 3. שליחת מייל התראה

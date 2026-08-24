@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>אזור סוכן - SLP Hub</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:Arial,sans-serif;background:#f4f5f7;direction:rtl;height:100dvh;display:flex;flex-direction:column;}
+
+/* ── Top bar ── */
+#top-bar{background:#fff;border-bottom:1px solid #dde;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:0 1px 4px rgba(0,0,0,0.06);}
+#top-bar .agent-info{font-size:14px;font-weight:600;color:#1a1a2e;}
+#top-bar .agent-info span{color:#4a6cf7;}
+#top-bar a{font-size:12px;color:#888;text-decoration:none;border:1px solid #dde;border-radius:7px;padding:6px 12px;}
+
+/* ── Main two-pane layout ── */
+#main{flex:1;display:flex;flex-direction:row;overflow:hidden;min-height:0;}
+
+/* list pane = right side (first in DOM, RTL) */
+#list-pane{width:340px;flex-shrink:0;background:#fff;border-left:1px solid #dde;display:flex;flex-direction:column;overflow:hidden;}
+#list-header{padding:12px 14px;font-size:13px;font-weight:700;color:#555;border-bottom:1px solid #eee;flex-shrink:0;}
+#calls-list{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+
+.call-item{padding:12px 14px;border-bottom:1px solid #f0f1f4;cursor:pointer;border-right:4px solid transparent;}
+.call-item:active{background:#f7f8fb;}
+.call-item.active{background:#eef2ff;}
+.call-item .ci-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
+.call-item .ci-num{font-size:12px;font-weight:700;}
+.call-item .ci-status{font-size:10px;padding:2px 7px;border-radius:10px;background:#f0f1f4;color:#666;}
+.call-item .ci-title{font-size:13px;color:#333;line-height:1.4;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+.call-item .ci-date{font-size:10px;color:#aaa;}
+
+/* chat pane = left side */
+#chat-pane{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
+#call-header{background:#fff;border-bottom:1px solid #dde;padding:10px 14px;flex-shrink:0;box-shadow:0 1px 4px rgba(0,0,0,0.06);}
+.call-badge{font-size:11px;color:#4a6cf7;font-weight:600;margin-bottom:2px;letter-spacing:.3px;}
+.call-title{font-size:15px;font-weight:600;color:#1a1a2e;margin-bottom:6px;line-height:1.3;}
+.call-meta{display:flex;gap:10px;flex-wrap:wrap;}
+.meta-item{font-size:11px;color:#888;}
+.meta-item b{color:#333;font-weight:500;}
+#back-btn{display:none;background:none;border:none;font-size:13px;color:#4a6cf7;cursor:pointer;margin-bottom:6px;padding:0;}
+
+#chat-area{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 14px;display:flex;flex-direction:column;gap:8px;}
+
+.msg-wrap{display:flex;flex-direction:column;max-width:88%;}
+.msg-bubble{background:#fff;border:1px solid #e8eaf0;border-radius:14px 14px 4px 14px;padding:8px 12px;box-shadow:0 1px 3px rgba(0,0,0,0.05);}
+.msg-head{display:flex;gap:8px;align-items:center;margin-bottom:4px;}
+.msg-name{font-size:12px;font-weight:600;color:#4a6cf7;}
+.msg-date{font-size:11px;color:#bbb;}
+.msg-body{font-size:14px;color:#333;line-height:1.6;white-space:pre-wrap;word-break:break-word;}
+.att-btn{margin-top:8px;display:inline-flex;align-items:center;gap:5px;font-size:12px;background:#eef2ff;color:#4a6cf7;border:1px solid #c7d2fe;border-radius:5px;padding:6px 12px;cursor:pointer;text-decoration:none;min-height:36px;}
+
+#input-area{background:#fff;border-top:1px solid #dde;padding:10px 14px;flex-shrink:0;padding-bottom:max(10px, env(safe-area-inset-bottom));}
+#new-msg{width:100%;min-height:56px;max-height:120px;resize:none;border:1px solid #dde;border-radius:10px;padding:10px 14px;font-size:16px;font-family:Arial,sans-serif;direction:rtl;color:#333;background:#fafbff;outline:none;transition:border-color .2s;-webkit-appearance:none;}
+#new-msg:focus{border-color:#4a6cf7;}
+.input-actions{display:flex;align-items:center;gap:8px;margin-top:8px;}
+.file-label{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:#666;cursor:pointer;padding:8px 12px;border:1px solid #dde;border-radius:8px;background:#fafbff;white-space:nowrap;min-height:40px;}
+#file-name{font-size:11px;color:#888;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#send-btn{margin-right:auto;padding:10px 22px;background:#4a6cf7;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;min-height:42px;min-width:80px;-webkit-appearance:none;}
+#send-btn:disabled{background:#c4c9d8;}
+#send-btn:not(:disabled):active{background:#3a5ce5;}
+
+.empty-state{text-align:center;color:#bbb;font-size:13px;padding:40px 0;}
+.loading{text-align:center;color:#aaa;font-size:13px;padding:30px 0;}
+.error-box{background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;font-size:13px;}
+
+#spinner{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,.75);z-index:999;align-items:center;justify-content:center;}
+#spinner.active{display:flex;}
+.spinner-box{background:#fff;border-radius:12px;padding:18px 28px;font-size:14px;color:#555;box-shadow:0 4px 20px rgba(0,0,0,.12);}
+
+/* ── Mobile: one pane at a time ── */
+@media (max-width:768px){
+  #list-pane{width:100%;border-left:none;}
+  #main.show-chat #list-pane{display:none;}
+  #main:not(.show-chat) #chat-pane{display:none;}
+  #back-btn{display:inline-block;}
+}
+</style>
+</head>
+<body>
+
+<div id="spinner"><div class="spinner-box">שולח הודעה...</div></div>
+
+<div id="top-bar">
+  <div class="agent-info">👤 <span>{{ agent_name }}</span> (קוד {{ agent_code }})</div>
+  <a href="/logout">יציאה</a>
+</div>
+
+<div id="main">
+  <div id="list-pane">
+    <div id="list-header">הקריאות שלי</div>
+    <div id="calls-list" class="loading">טוען קריאות...</div>
+  </div>
+
+  <div id="chat-pane">
+    <div id="call-header">
+      <button id="back-btn" onclick="showListView()">‹ חזרה לרשימה</button>
+      <div id="header-content" class="empty-state">בחר קריאה מהרשימה</div>
+    </div>
+    <div id="chat-area"></div>
+    <div id="input-area" style="display:none;">
+      <textarea id="new-msg" placeholder="כתוב הודעה חדשה..."></textarea>
+      <div class="input-actions">
+        <label class="file-label" for="file-input">📎 צרף</label>
+        <input type="file" id="file-input" style="display:none">
+        <span id="file-name"></span>
+        <button id="send-btn" disabled>שלח ➤</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const AIRTABLE_TOKEN = '{{ airtable_token }}';
+const AIRTABLE_BASE  = '{{ airtable_base }}';
+const AGENT_CODE     = '{{ agent_code }}';
+const AGENT_NAME     = '{{ agent_name }}';
+const CALLS_TBL      = 'Calls';
+const MSGS_TBL       = 'Massages';
+const CLOSED_STATUS  = 'קריאה סגורה';
+
+let selectedCallId   = null;
+let selectedCallNum  = null;
+let selectedSupporter = '';
+let selectedIssue     = '';
+let refreshTimer      = null;
+
+function formatDate(str) {
+  if (!str) return '';
+  const d = new Date(str);
+  if (isNaN(d)) return str;
+  const p = n => String(n).padStart(2,'0');
+  return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+function typeColors(callType) {
+  const t = String(callType || '').trim();
+  if (t === '2') return { border:'#16a34a', bg:'#eafaf1', text:'#16a34a' };
+  if (t === '3') return { border:'#9333ea', bg:'#f5eefc', text:'#9333ea' };
+  return { border:'#4a6cf7', bg:'#eef2ff', text:'#4a6cf7' }; // 1 or empty
+}
+
+async function atFetch(path, opts={}) {
+  const r = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE}/${path}`, {
+    ...opts,
+    headers: {
+      'Authorization': `Bearer ${AIRTABLE_TOKEN}`,
+      'Content-Type' : 'application/json',
+      ...(opts.headers||{})
+    }
+  });
+  if (!r.ok) throw new Error(`Airtable ${r.status}: ${await r.text()}`);
+  return r.json();
+}
+
+// ══════════════════════════════════════
+//  רשימת קריאות (מסונן לפי קוד סוכן + סטטוס)
+// ══════════════════════════════════════
+function buildCallsFormula() {
+  const code = AGENT_CODE.replace(/"/g, '\\"');
+  return (
+    `AND({slp-code}="${code}",` +
+      `OR(` +
+        `NOT({status}='${CLOSED_STATUS}'),` +
+        `AND({status}='${CLOSED_STATUS}',DATETIME_DIFF(NOW(),{close_date},'days')<=2)` +
+      `)` +
+    `)`
+  );
+}
+
+async function loadCallsList() {
+  const list = document.getElementById('calls-list');
+  try {
+    const formula = encodeURIComponent(buildCallsFormula());
+    const res = await atFetch(
+      `${CALLS_TBL}?filterByFormula=${formula}&sort[0][field]=create_date&sort[0][direction]=desc`
+    );
+
+    if (!res.records?.length) {
+      list.innerHTML = '<div class="empty-state">אין קריאות פתוחות</div>';
+      return;
+    }
+
+    list.innerHTML = '';
+    for (const rec of res.records) {
+      const fld = rec.fields;
+      const colors = typeColors(fld.call_type);
+      const div = document.createElement('div');
+      div.className = 'call-item' + (rec.id === selectedCallId ? ' active' : '');
+      div.style.borderRightColor = colors.border;
+      div.dataset.id = rec.id;
+      div.innerHTML = `
+        <div class="ci-top">
+          <span class="ci-num" style="color:${colors.text}">🎫 ${fld.call_num || ''}</span>
+          <span class="ci-status">${fld.status || ''}</span>
+        </div>
+        <div class="ci-title">${fld.slp_issue || ''}</div>
+        <div class="ci-date">${formatDate(fld.create_date)}</div>`;
+      div.addEventListener('click', () => selectCall(rec));
+      list.appendChild(div);
+    }
+  } catch (e) {
+    list.innerHTML = `<div class="error-box">שגיאה: ${e.message}</div>`;
+  }
+}
+
+// ══════════════════════════════════════
+//  בחירת קריאה → טעינת הצ'אט בפאנל השמאלי
+// ══════════════════════════════════════
+function selectCall(rec) {
+  const fld = rec.fields;
+  selectedCallId    = rec.id;
+  selectedCallNum   = fld.call_num;
+  selectedSupporter = fld.supporter || '';
+  selectedIssue     = fld.slp_issue || '';
+
+  document.querySelectorAll('.call-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.id === rec.id);
+  });
+
+  const colors = typeColors(fld.call_type);
+  document.getElementById('header-content').innerHTML = `
+    <div class="call-badge" style="color:${colors.text}">🎫 קריאה מספר ${fld.call_num || ''}</div>
+    <div class="call-title">${selectedIssue}</div>
+    <div class="call-meta">
+      <div class="meta-item">📅 <b>${formatDate(fld.create_date)}</b></div>
+      <div class="meta-item">🙋 <b>${selectedSupporter}</b></div>
+      <div class="meta-item">📌 <b>${fld.status || ''}</b></div>
+    </div>`;
+
+  document.getElementById('input-area').style.display = 'block';
+  loadMessages();
+  showChatView();
+
+  if (refreshTimer) clearInterval(refreshTimer);
+  refreshTimer = setInterval(loadMessages, 15000);
+}
+
+async function loadMessages() {
+  if (!selectedCallId) return;
+  const listEl = document.getElementById('chat-area');
+  try {
+    const f = encodeURIComponent(`{call_num}=${selectedCallNum}`);
+    const res = await atFetch(
+      `${MSGS_TBL}?filterByFormula=${f}&sort[0][field]=date&sort[0][direction]=asc`
+    );
+    if (!res.records?.length) {
+      listEl.innerHTML = '<div class="empty-state">אין הודעות עדיין</div>';
+      return;
+    }
+    listEl.innerHTML = '';
+    for (const rec of res.records) {
+      const fld = rec.fields;
+      const attUrl = fld.attachment || null;
+      const attHtml = attUrl
+        ? `<a class="att-btn" href="${attUrl}" target="_blank">📎 פתח מסמך</a>`
+        : '';
+      const div = document.createElement('div');
+      div.className = 'msg-wrap';
+      div.innerHTML = `
+        <div class="msg-bubble">
+          <div class="msg-head">
+            <span class="msg-name">${fld.name || ''}</span>
+            <span class="msg-date">${formatDate(fld.date)}</span>
+          </div>
+          <div class="msg-body">${(fld.massage || '').replace(/</g,'&lt;')}</div>
+          ${attHtml}
+        </div>`;
+      listEl.appendChild(div);
+    }
+    const area = document.getElementById('chat-area');
+    area.scrollTop = area.scrollHeight;
+  } catch (e) {
+    listEl.innerHTML = `<div class="error-box">שגיאה: ${e.message}</div>`;
+  }
+}
+
+async function sendMessage() {
+  const txt = document.getElementById('new-msg').value.trim();
+  if (!txt || !selectedCallId) return;
+
+  const btn = document.getElementById('send-btn');
+  btn.disabled = true;
+  document.getElementById('spinner').classList.add('active');
+
+  try {
+    let attachmentUrl = null;
+    const fileEl = document.getElementById('file-input');
+    if (fileEl.files[0]) {
+      const fd = new FormData();
+      fd.append('file', fileEl.files[0]);
+      fd.append('call_num', selectedCallNum);
+      const upRes  = await fetch('/upload-file', { method:'POST', body:fd });
+      const upJson = await upRes.json();
+      if (upJson.url) attachmentUrl = upJson.url;
+    }
+
+    await atFetch(MSGS_TBL, {
+      method: 'POST',
+      body: JSON.stringify({
+        fields: {
+          call_num  : [selectedCallId],
+          date      : new Date().toISOString(),
+          name      : AGENT_NAME,
+          massage   : txt,
+          ...(attachmentUrl ? { attachment: attachmentUrl } : {})
+        }
+      })
+    });
+
+    await atFetch(`${CALLS_TBL}/${selectedCallId}`, {
+      method : 'PATCH',
+      body   : JSON.stringify({ fields: { status: 'הודעה חדשה' } })
+    });
+
+    await fetch('/notify', {
+      method : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body   : JSON.stringify({
+        slp_name  : AGENT_NAME,
+        call_num  : selectedCallNum,
+        supporter : selectedSupporter,
+        slp_issue : selectedIssue
+      })
+    });
+
+    document.getElementById('new-msg').value = '';
+    document.getElementById('file-name').textContent = '';
+    fileEl.value = '';
+    btn.disabled = true;
+
+    await loadMessages();
+    await loadCallsList();
+
+  } catch (e) {
+    alert('שגיאה בשליחה: ' + e.message);
+    btn.disabled = false;
+  } finally {
+    document.getElementById('spinner').classList.remove('active');
+  }
+}
+
+function showChatView(){ document.getElementById('main').classList.add('show-chat'); }
+function showListView(){ document.getElementById('main').classList.remove('show-chat'); }
+
+document.getElementById('new-msg').addEventListener('input', function(){
+  document.getElementById('send-btn').disabled = !this.value.trim();
+});
+document.getElementById('file-input').addEventListener('change', function(){
+  document.getElementById('file-name').textContent = this.files[0]?.name || '';
+});
+document.getElementById('send-btn').addEventListener('click', sendMessage);
+
+loadCallsList();
+setInterval(loadCallsList, 30000); // רענון רשימת קריאות ברקע
+</script>
+</body>
+</html>
