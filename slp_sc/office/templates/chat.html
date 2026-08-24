@@ -63,7 +63,7 @@ body{font-family:Arial,sans-serif;background:#f4f5f7;direction:rtl;display:flex;
 </div>
 
 <div id="input-area">
-  <textarea id="new-msg" placeholder="כתוב הודעה חדשה..."></textarea>
+  <textarea id="new-msg" placeholder="כתוב ..."></textarea>
   <div class="input-actions">
     <label class="file-label" for="file-input">📎 צרף</label>
     <input type="file" id="file-input" style="display:none">
@@ -201,7 +201,7 @@ async function sendMessage() {
       if (upJson.url) attachmentUrl = upJson.url;
     }
 
-    // 1. יצירת הודעה חדשה
+    // 1. יצירת 
     await atFetch(MSGS_TBL, {
       method: 'POST',
       body: JSON.stringify({
