@@ -13,7 +13,7 @@ body{font-family:Arial,sans-serif;background:#f4f5f7;direction:rtl;height:100dvh
 #top-bar{background:#fff;border-bottom:1px solid #dde;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:0 1px 4px rgba(0,0,0,0.06);}
 #top-bar .agent-info{font-size:14px;font-weight:600;color:#1a1a2e;}
 #top-bar .agent-info span{color:#4a6cf7;}
-#top-bar a{font-size:12px;color:#888;text-decoration:none;border:1px solid #dde;border-radius:7px;padding:6px 12px;}
+#top-bar a, #top-back-btn{font-size:12px;color:#888;text-decoration:none;border:1px solid #dde;border-radius:7px;padding:6px 12px;background:#fff;cursor:pointer;display:none;font-family:Arial,sans-serif;}
 
 /* ── Main two-pane layout ── */
 #main{flex:1;display:flex;flex-direction:row;overflow:hidden;min-height:0;}
@@ -40,8 +40,6 @@ body{font-family:Arial,sans-serif;background:#f4f5f7;direction:rtl;height:100dvh
 .call-meta{display:flex;gap:10px;flex-wrap:wrap;}
 .meta-item{font-size:11px;color:#888;}
 .meta-item b{color:#333;font-weight:500;}
-#back-btn{display:none;background:none;border:none;font-size:13px;color:#4a6cf7;cursor:pointer;margin-bottom:6px;padding:0;}
-
 #chat-area{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 14px;display:flex;flex-direction:column;gap:8px;}
 
 .msg-wrap{display:flex;flex-direction:column;max-width:88%;}
@@ -75,7 +73,7 @@ body{font-family:Arial,sans-serif;background:#f4f5f7;direction:rtl;height:100dvh
   #list-pane{width:100%;border-left:none;}
   #main.show-chat #list-pane{display:none;}
   #main:not(.show-chat) #chat-pane{display:none;}
-  #back-btn{display:inline-block;}
+  #top-back-btn.visible{display:inline-block;}
 }
 </style>
 </head>
@@ -85,7 +83,7 @@ body{font-family:Arial,sans-serif;background:#f4f5f7;direction:rtl;height:100dvh
 
 <div id="top-bar">
   <div class="agent-info">👤 <span>{{ agent_name }}</span> (קוד {{ agent_code }})</div>
-  <a href="/logout">יציאה</a>
+  <button id="top-back-btn" onclick="showListView()">‹ חזרה לרשימה</button>
 </div>
 
 <div id="main">
@@ -96,7 +94,6 @@ body{font-family:Arial,sans-serif;background:#f4f5f7;direction:rtl;height:100dvh
 
   <div id="chat-pane">
     <div id="call-header">
-      <button id="back-btn" onclick="showListView()">‹ חזרה לרשימה</button>
       <div id="header-content" class="empty-state">בחר קריאה מהרשימה</div>
     </div>
     <div id="chat-area"></div>
@@ -342,8 +339,14 @@ async function sendMessage() {
   }
 }
 
-function showChatView(){ document.getElementById('main').classList.add('show-chat'); }
-function showListView(){ document.getElementById('main').classList.remove('show-chat'); }
+function showChatView(){
+  document.getElementById('main').classList.add('show-chat');
+  document.getElementById('top-back-btn').classList.add('visible');
+}
+function showListView(){
+  document.getElementById('main').classList.remove('show-chat');
+  document.getElementById('top-back-btn').classList.remove('visible');
+}
 
 document.getElementById('new-msg').addEventListener('input', function(){
   document.getElementById('send-btn').disabled = !this.value.trim();
