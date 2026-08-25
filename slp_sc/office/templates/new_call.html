@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>קריאה חדשה - SLP Hub</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{font-family:Arial,sans-serif;background:#f4f5f7;direction:rtl;height:100dvh;display:flex;flex-direction:column;}
+
+#top-bar{background:#fff;border-bottom:1px solid #dde;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:0 1px 4px rgba(0,0,0,0.06);}
+#top-bar .agent-info{font-size:14px;font-weight:600;color:#1a1a2e;}
+#top-bar .agent-info span{color:#4a6cf7;}
+#top-bar a{font-size:12px;color:#888;text-decoration:none;border:1px solid #dde;border-radius:7px;padding:6px 12px;background:#fff;}
+
+#form-area{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 14px;}
+.page-title{font-size:17px;font-weight:700;color:#1a1a2e;margin-bottom:16px;}
+
+label{display:block;font-size:13px;color:#555;margin-bottom:6px;font-weight:600;}
+.field{margin-bottom:18px;}
+
+.type-options{display:flex;flex-direction:column;gap:8px;}
+.type-option{display:flex;align-items:center;gap:10px;border:1px solid #dde;border-radius:10px;padding:12px 14px;cursor:pointer;background:#fff;}
+.type-option.selected{border-color:#4a6cf7;background:#eef2ff;}
+.type-option input{width:18px;height:18px;accent-color:#4a6cf7;}
+.type-option .type-label{font-size:14px;color:#333;}
+
+textarea{width:100%;min-height:110px;resize:vertical;border:1px solid #dde;border-radius:10px;padding:12px 14px;font-size:15px;font-family:Arial,sans-serif;direction:rtl;color:#333;background:#fafbff;outline:none;-webkit-appearance:none;}
+textarea:focus{border-color:#4a6cf7;}
+
+.file-label{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#666;cursor:pointer;padding:10px 14px;border:1px solid #dde;border-radius:8px;background:#fafbff;width:100%;justify-content:center;}
+#file-name{font-size:12px;color:#4a6cf7;margin-top:6px;text-align:center;}
+
+#submit-btn{width:100%;padding:14px;background:#4a6cf7;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;margin-top:6px;-webkit-appearance:none;}
+#submit-btn:disabled{background:#c4c9d8;}
+#submit-btn:not(:disabled):active{background:#3a5ce5;}
+
+.error-box{background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:16px;}
+.success-box{background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;border-radius:8px;padding:14px;font-size:14px;text-align:center;margin-bottom:16px;font-weight:600;}
+
+#spinner{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,.75);z-index:999;align-items:center;justify-content:center;}
+#spinner.active{display:flex;}
+.spinner-box{background:#fff;border-radius:12px;padding:18px 28px;font-size:14px;color:#555;box-shadow:0 4px 20px rgba(0,0,0,.12);}
+</style>
+</head>
+<body>
+
+<div id="spinner"><div class="spinner-box">שולח קריאה...</div></div>
+
+<div id="top-bar">
+  <div class="agent-info">👤 <span>{{ agent_name }}</span> (קוד {{ agent_code }})</div>
+  <a href="/agent">‹ חזרה לרשימה</a>
+</div>
+
+<div id="form-area">
+  <div class="page-title">📋 פתיחת קריאה חדשה</div>
+
+  <div id="msg-area"></div>
+
+  <div class="field">
+    <label>סוג קריאה</label>
+    <div class="type-options">
+      <label class="type-option" data-value="1">
+        <input type="radio" name="call_type" value="1" checked>
+        <span class="type-label">🏢 קריאה למשרד</span>
+      </label>
+      <label class="type-option" data-value="2">
+        <input type="radio" name="call_type" value="2">
+        <span class="type-label">💰 קריאה לגבייה</span>
+      </label>
+      <label class="type-option" data-value="3">
+        <input type="radio" name="call_type" value="3">
+        <span class="type-label">💼 קריאה לתמיכת מכירות</span>
+      </label>
+    </div>
+  </div>
+
+  <div class="field">
+    <label for="issue-text">תוכן הקריאה</label>
+    <textarea id="issue-text" placeholder="תאר את הבקשה או הבעיה..."></textarea>
+  </div>
+
+  <div class="field">
+    <label>מסמך מקושר (אופציונלי)</label>
+    <label class="file-label" for="file-input">📎 צרף קובץ / תמונה</label>
+    <input type="file" id="file-input" style="display:none">
+    <div id="file-name"></div>
+  </div>
+
+  <button id="submit-btn">שלח קריאה</button>
+</div>
+
+<script>
+document.querySelectorAll('.type-option').forEach(opt => {
+  opt.addEventListener('click', () => {
+    document.querySelectorAll('.type-option').forEach(o => o.classList.remove('selected'));
+    opt.classList.add('selected');
+    opt.querySelector('input').checked = true;
+  });
+});
+document.querySelector('.type-option[data-value="1"]').classList.add('selected');
+
+document.getElementById('file-input').addEventListener('change', function(){
+  document.getElementById('file-name').textContent = this.files[0]?.name || '';
+});
+
+document.getElementById('submit-btn').addEventListener('click', async () => {
+  const issue = document.getElementById('issue-text').value.trim();
+  const callType = document.querySelector('input[name="call_type"]:checked').value;
+  const msgArea = document.getElementById('msg-area');
+  msgArea.innerHTML = '';
+
+  if (!issue) {
+    msgArea.innerHTML = '<div class="error-box">יש למלא תוכן קריאה</div>';
+    return;
+  }
+
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  document.getElementById('spinner').classList.add('active');
+
+  try {
+    const fd = new FormData();
+    fd.append('call_type', callType);
+    fd.append('issue', issue);
+    const fileEl = document.getElementById('file-input');
+    if (fileEl.files[0]) fd.append('file', fileEl.files[0]);
+
+    const res  = await fetch('/api/create-call', { method: 'POST', body: fd });
+    const data = await res.json();
+
+    if (data.success) {
+      msgArea.innerHTML = `<div class="success-box">✅ הקריאה מספר ${data.call_num} נפתחה בהצלחה</div>`;
+      setTimeout(() => { window.location.href = '/agent'; }, 1200);
+    } else {
+      msgArea.innerHTML = `<div class="error-box">${data.error || 'שגיאה בפתיחת הקריאה'}</div>`;
+      btn.disabled = false;
+    }
+  } catch (e) {
+    msgArea.innerHTML = `<div class="error-box">שגיאה: ${e.message}</div>`;
+    btn.disabled = false;
+  } finally {
+    document.getElementById('spinner').classList.remove('active');
+  }
+});
+</script>
+</body>
+</html>

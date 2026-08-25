@@ -20,6 +20,12 @@ body{font-family:Arial,sans-serif;background:#f4f5f7;direction:rtl;height:100dvh
 
 /* list pane = right side (first in DOM, RTL) */
 #list-pane{width:340px;flex-shrink:0;background:#fff;border-left:1px solid #dde;display:flex;flex-direction:column;overflow:hidden;}
+#action-bar{display:flex;gap:8px;padding:10px 14px;border-bottom:1px solid #eee;flex-shrink:0;}
+#action-bar button{flex:1;font-size:12px;color:#555;border:1px solid #dde;border-radius:7px;padding:9px 10px;background:#fff;cursor:pointer;font-family:Arial,sans-serif;display:flex;align-items:center;justify-content:center;gap:5px;}
+#action-bar button:active{background:#f7f8fb;}
+#new-call-btn{color:#4a6cf7;border-color:#c7d2fe;background:#eef2ff;}
+#refresh-btn.spinning .refresh-icon{display:inline-block;animation:spin 0.7s linear;}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 #list-header{padding:12px 14px;font-size:13px;font-weight:700;color:#555;border-bottom:1px solid #eee;flex-shrink:0;}
 #calls-list{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
 
@@ -88,6 +94,10 @@ body{font-family:Arial,sans-serif;background:#f4f5f7;direction:rtl;height:100dvh
 
 <div id="main">
   <div id="list-pane">
+    <div id="action-bar">
+      <button id="new-call-btn" onclick="location.href='/new-call'">➕ קריאה חדשה</button>
+      <button id="refresh-btn" onclick="refreshCalls()"><span class="refresh-icon">🔄</span> רענון</button>
+    </div>
     <div id="list-header">הקריאות שלי</div>
     <div id="calls-list" class="loading">טוען קריאות...</div>
   </div>
@@ -137,6 +147,13 @@ function typeColors(callType) {
   if (t === '2') return { border:'#16a34a', bg:'#eafaf1', text:'#16a34a' };
   if (t === '3') return { border:'#9333ea', bg:'#f5eefc', text:'#9333ea' };
   return { border:'#4a6cf7', bg:'#eef2ff', text:'#4a6cf7' }; // 1 or empty
+}
+
+function typeIcon(callType) {
+  const t = String(callType || '').trim();
+  if (t === '2') return '💰'; // גבייה
+  if (t === '3') return '💼'; // תמיכת מכירות
+  return '🏢'; // 1 or empty — משרד
 }
 
 async function atFetch(path, opts={}) {
@@ -190,7 +207,7 @@ async function loadCallsList() {
       div.dataset.id = rec.id;
       div.innerHTML = `
         <div class="ci-top">
-          <span class="ci-num" style="color:${colors.text}">🎫 ${fld.call_num || ''}</span>
+          <span class="ci-num" style="color:${colors.text}">${typeIcon(fld.call_type)} ${fld.call_num || ''}</span>
           <span class="ci-status">${fld.status || ''}</span>
         </div>
         <div class="ci-title">${fld.slp_issue || ''}</div>
@@ -219,7 +236,7 @@ function selectCall(rec) {
 
   const colors = typeColors(fld.call_type);
   document.getElementById('header-content').innerHTML = `
-    <div class="call-badge" style="color:${colors.text}">🎫 קריאה מספר ${fld.call_num || ''}</div>
+    <div class="call-badge" style="color:${colors.text}">${typeIcon(fld.call_type)} קריאה מספר ${fld.call_num || ''}</div>
     <div class="call-title">${selectedIssue}</div>
     <div class="call-meta">
       <div class="meta-item">📅 <b>${formatDate(fld.create_date)}</b></div>
@@ -337,6 +354,15 @@ async function sendMessage() {
   } finally {
     document.getElementById('spinner').classList.remove('active');
   }
+}
+
+function refreshCalls(){
+  const btn = document.getElementById('refresh-btn');
+  btn.classList.add('spinning');
+  Promise.all([
+    loadCallsList(),
+    selectedCallId ? loadMessages() : Promise.resolve()
+  ]).finally(() => btn.classList.remove('spinning'));
 }
 
 function showChatView(){
