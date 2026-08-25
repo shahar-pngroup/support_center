@@ -131,8 +131,12 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
     const data = await res.json();
 
     if (data.success) {
-      msgArea.innerHTML = `<div class="success-box">✅ הקריאה מספר ${data.call_num} נפתחה בהצלחה</div>`;
-      setTimeout(() => { window.location.href = '/agent'; }, 1200);
+      let msg = `✅ הקריאה מספר ${data.call_num} נפתחה בהצלחה`;
+      if (data.warnings && data.warnings.length) {
+        msg += '<br><br>⚠️ ' + data.warnings.join('<br>⚠️ ');
+      }
+      msgArea.innerHTML = `<div class="success-box">${msg}</div>`;
+      setTimeout(() => { window.location.href = '/agent'; }, data.warnings ? 4000 : 1200);
     } else {
       msgArea.innerHTML = `<div class="error-box">${data.error || 'שגיאה בפתיחת הקריאה'}</div>`;
       btn.disabled = false;

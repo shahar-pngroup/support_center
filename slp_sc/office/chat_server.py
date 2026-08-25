@@ -167,6 +167,8 @@ def create_call():
     if not issue:
         return jsonify({'error': 'יש למלא תוכן קריאה'}), 400
 
+    warnings = []
+
     try:
         call_num = _get_next_call_num()
     except Exception as e:
@@ -186,44 +188,64 @@ def create_call():
                 ContentType = file.content_type or 'application/octet-stream'
             )
             attachment_url = f'https://{S3_BUCKET}.s3.eu-north-1.amazonaws.com/{file_key}'
+            print(f'[create_call] S3 upload OK: {attachment_url}')
         except Exception as e:
             print(f'[create_call] S3 upload error: {e}')
+            warnings.append(f'העלאת הקובץ נכשלה: {e}')
 
     from datetime import datetime
+    agent_code_raw = session.get('agent_code', '')
+    try:
+        agent_code_num = int(agent_code_raw)
+    except (TypeError, ValueError):
+        agent_code_num = agent_code_raw  # fallback as-is if not numeric
+
     fields = {
         'call_num'   : call_num,
         'create_date': datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.000Z'),
         'slp_name'   : session.get('agent_name', ''),
         'slp_issue'  : issue,
         'call_type'  : call_type,
+        'slp-code'   : agent_code_num,
     }
     if attachment_url:
         fields['attachment'] = attachment_url
 
-    try:
-        resp = req.post(
+    def _create_record(payload_fields):
+        return req.post(
             f'https://api.airtable.com/v0/{AIRTABLE_BASE_ID}/Calls',
             headers={'Authorization': f'Bearer {AIRTABLE_TOKEN}', 'Content-Type': 'application/json'},
-            json={'fields': fields}
+            json={'fields': payload_fields}
         )
+
+    try:
+        resp = _create_record(fields)
+        if resp.status_code not in (200, 201) and attachment_url:
+            # ייתכן שהשדה attachment לא תקין ב-Airtable (שם/סוג שדה שגוי) — ננסה שוב בלעדיו
+            print(f'[create_call] Airtable error with attachment field: {resp.status_code} {resp.text}')
+            warnings.append(f'שמירת המסמך המצורף נכשלה (שדה attachment): {resp.text}')
+            fields.pop('attachment', None)
+            resp = _create_record(fields)
         if resp.status_code not in (200, 201):
             return jsonify({'error': f'שגיאת Airtable: {resp.text}'}), 500
     except Exception as e:
         return jsonify({'error': f'שגיאת רשת: {e}'}), 500
 
     # שליחת מייל לנמענים המתאימים לסוג הקריאה
-    try:
-        subject = f'נפתחה קריאת סוכנים חדשה במערכת {call_num}'
-        body    = f"הודעה נשלחה מ{session.get('agent_name', '')}\n\n{issue}"
-        for addr in CALL_TYPE_EMAILS.get(call_type, ['office@pngroup.co.il']):
-            try:
-                send_email(subject, body, addr)
-            except Exception as mail_err:
-                print(f'[create_call] Failed to send email to {addr}: {mail_err}')
-    except Exception as e:
-        print(f'[create_call] Email routing error: {e}')
+    subject = f'נפתחה קריאת סוכנים חדשה במערכת {call_num}'
+    body    = f"הודעה נשלחה מ{session.get('agent_name', '')}\n\n{issue}"
+    for addr in CALL_TYPE_EMAILS.get(call_type, ['office@pngroup.co.il']):
+        try:
+            send_email(subject, body, addr)
+            print(f'[create_call] Email sent to {addr} for call {call_num}')
+        except Exception as mail_err:
+            print(f'[create_call] Failed to send email to {addr}: {mail_err}')
+            warnings.append(f'שליחת מייל ל-{addr} נכשלה: {mail_err}')
 
-    return jsonify({'success': True, 'call_num': call_num})
+    result = {'success': True, 'call_num': call_num}
+    if warnings:
+        result['warnings'] = warnings
+    return jsonify(result)
 
 
 # ══════════════════════════════════════════════
