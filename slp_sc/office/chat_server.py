@@ -1,14 +1,13 @@
-import smtplib
 import boto3
 import requests as req
-from datetime import timedelta
-from functools import wraps
+import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from datetime import timedelta
+from functools import wraps
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from dotenv import load_dotenv
 import os
-
 load_dotenv()
 
 app = Flask(__name__, template_folder='templates')
@@ -252,9 +251,9 @@ def create_call():
 #  קיים - לא שונה
 # ══════════════════════════════════════════════
 def send_email(subject, body, to_email, cc_email=''):
-    from_email  = 'pngis@gmail.com'
+    from_email  = 'pngis@pngroup.co.il'
     password    = os.getenv('SMTP_PASSWORD', '')
-    smtp_server = 'smtp.gmail.com'
+    smtp_server = 'smtp.office365.com'
     smtp_port   = 587
 
     msg            = MIMEMultipart()
