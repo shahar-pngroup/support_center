@@ -201,7 +201,7 @@ def create_call():
 
     fields = {
         'call_num'   : call_num,
-        'create_date': datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.000Z'),
+        # 'create_date': datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.000Z'),
         'slp_name'   : session.get('agent_name', ''),
         'slp_issue'  : issue,
         'call_type'  : call_type,
